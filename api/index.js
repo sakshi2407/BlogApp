@@ -10,7 +10,6 @@ const app = express();
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 const Multer = require("multer");
-const fs = require("fs");
 
 const salt = bcrypt.genSaltSync(10);
 require("dotenv").config();
