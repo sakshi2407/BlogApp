@@ -21,10 +21,12 @@ export default function CreatePost() {
       method: "POST",
       body: data,
       credentials: "include",
-    });
-    if (response.ok) {
-      setRedirect(true);
-    }
+    })
+    .then(() => setRedirect(true))
+    .catch((err) => console.log(err));
+    // if (response.ok) {
+    //   setRedirect(true);
+    // }
   }
 
   if (redirect) {
