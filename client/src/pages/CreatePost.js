@@ -20,10 +20,13 @@ export default function CreatePost() {
     const response = await fetch(`${CONFIG.backend_url}/post`, {
       method: "POST",
       body: data,
+      headers: {
+        Credentials: "include",
+      },
       credentials: "include",
     })
-    .then(() => setRedirect(true))
-    .catch((err) => console.log(err));
+      .then(() => setRedirect(true))
+      .catch((err) => console.log(err));
     // if (response.ok) {
     //   setRedirect(true);
     // }

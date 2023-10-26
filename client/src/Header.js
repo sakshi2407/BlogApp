@@ -8,16 +8,26 @@ export default function Header() {
   useEffect(() => {
     fetch(`${CONFIG.backend_url}/profile`, {
       credentials: "include",
-    }).then((response) => {
-      response.json().then((userInfo) => {
-        setUserInfo(userInfo);
+      headers: {
+        Credentials: "include",
+      },
+    })
+      .then((response) => {
+        response.json().then((userInfo) => {
+          setUserInfo(userInfo);
+        });
+      })
+      .catch((err) => {
+        console.log(err);
       });
-    });
   }, []);
 
   function logout() {
     fetch(`${CONFIG.backend_url}/logout`, {
       credentials: "include",
+      headers: {
+        Credentials: "include",
+      },
       method: "POST",
     });
     setUserInfo(null);

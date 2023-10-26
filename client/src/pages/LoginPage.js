@@ -9,20 +9,30 @@ export default function LoginPage() {
   const [redirect, setRedirect] = useState(false);
   const { setUserInfo } = useContext(UserContext);
   async function login(ev) {
-    ev.preventDefault();
-    const response = await fetch(`${CONFIG.backend_url}/login`, {
-      method: "POST",
-      body: JSON.stringify({ username, password }),
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-    });
-    if (response.ok) {
-      response.json().then((userInfo) => {
-        setUserInfo(userInfo);
-        setRedirect(true);
+    console.log("login");
+    try {
+      ev.preventDefault();
+      const response = await fetch(`${CONFIG.backend_url}/login`, {
+        method: "POST",
+        body: JSON.stringify({ username, password }),
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Credentials: "include",
+        },
+        credentials: "include",
       });
-    } else {
-      alert("wrong credentials");
+      console.log(response);
+      if (response.ok) {
+        response.json().then((userInfo) => {
+          setUserInfo(userInfo);
+          setRedirect(true);
+        });
+      } else {
+        alert("wrong credentials");
+      }
+    } catch (err) {
+      console.log(err);
     }
   }
   if (redirect) {

@@ -34,6 +34,9 @@ export default function EditPost() {
     const response = await fetch(`${CONFIG.backend_url}/post`, {
       method: "PUT",
       body: data,
+      headers: {
+        Credentials: "include",
+      },
       credentials: "include",
     });
     if (response.ok) {

@@ -24,6 +24,20 @@ cloudinary.config({
   api_secret: CLOUDINARY_SECRET,
 });
 
+/**
+ * @type {cors.CorsOptions}
+ */
+const corsOptions = {
+  origin: (origin, callback) => {
+    const origins = JSON.parse(process.env.CORS_ORIGINS ?? "null");
+    if (origins === null) return callback(null, true);
+    else {
+      return origins.indexOf(origin) !== -1;
+    }
+  },
+  credentials: true,
+};
+
 async function handleUpload(file) {
   const res = await cloudinary.uploader.upload(file, {
     resource_type: "auto",
@@ -33,7 +47,7 @@ async function handleUpload(file) {
 
 const secret = process.env.JWT_SECRET;
 
-app.use(cors({ credentials: true, origin: process.env.FRONTEND_URL }));
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 app.use("/uploads", express.static(__dirname + "/uploads"));
@@ -74,13 +88,25 @@ app.post("/login", async (req, res) => {
   const passOk = bcrypt.compareSync(password, userDoc.password);
   if (passOk) {
     // logged in
-    jwt.sign({ username, id: userDoc._id }, secret, {}, (err, token) => {
-      if (err) throw err;
-      res.cookie("token", token).json({
-        id: userDoc._id,
+    const token = jwt.sign(
+      {
         username,
-      });
-    });
+        id: userDoc._id,
+      },
+      secret,
+      {
+        expiresIn: "7d",
+      }
+    );
+    // store token as http-only cookie
+    console.log(token);
+    res
+      .cookie("token", token, {
+        httpOnly: true,
+        sameSite: "strict",
+        expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+      })
+      .json({ username, id: userDoc._id });
   } else {
     res.status(400).json("wrong credentials");
   }
@@ -102,8 +128,11 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
 app.get("/profile", (req, res) => {
   const { token } = req.cookies;
+  if (!token) {
+    return res.json(null);
+  }
   jwt.verify(token, secret, {}, (err, info) => {
-    if (err) throw err;
+    if (err) console.error(err);
     res.json(info);
   });
 });
@@ -113,23 +142,29 @@ app.post("/logout", (req, res) => {
 });
 
 app.post("/post", upload.single("file"), async (req, res) => {
-  const b64 = Buffer.from(req.file.buffer).toString("base64");
-  let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
-  const cldRes = await handleUpload(dataURI);
+  try {
+    const b64 = Buffer.from(req.file.buffer).toString("base64");
+    let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+    const cldRes = await handleUpload(dataURI);
 
-  const { token } = req.cookies;
-  jwt.verify(token, secret, {}, async (err, info) => {
-    if (err) throw err;
-    const { title, summary, content } = req.body;
-    const postDoc = await Post.create({
-      title,
-      summary,
-      content,
-      cover: cldRes.url,
-      author: info.id,
+    const { token } = req.cookies;
+    if (!token) throw new Error("not logged in");
+    jwt.verify(token, secret, {}, async (err, info) => {
+      if (err) throw err;
+      const { title, summary, content } = req.body;
+      const postDoc = await Post.create({
+        title,
+        summary,
+        content,
+        cover: cldRes.url,
+        author: info.id,
+      });
+      res.json(postDoc);
     });
-    res.json(postDoc);
-  });
+  } catch (e) {
+    console.log(e);
+    res.status(400).json(e);
+  }
 });
 
 app.put("/post", upload.single("file"), async (req, res) => {
